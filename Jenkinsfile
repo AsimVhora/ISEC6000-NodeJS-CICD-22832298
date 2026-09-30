@@ -6,7 +6,7 @@ pipeline {
 
         stage('Checkout Code') {
             steps {
-                git branch: 'master',
+                git branch: 'main',
                 credentialsId: 'github-token',
                 url: 'https://github.com/AsimVhora/ISEC6000-NodeJS-CICD-22832298'
             }
