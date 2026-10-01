@@ -26,7 +26,7 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh '''
-                    docker create --name ${CI_CONTAINER} node:18
+                    docker create --name ${CI_CONTAINER} node:18 sh -c "tail -f /dev/null"
                     docker cp . ${CI_CONTAINER}:/app
                     docker start ${CI_CONTAINER}
                     docker exec ${CI_CONTAINER} sh -c "cd /app && npm install"
