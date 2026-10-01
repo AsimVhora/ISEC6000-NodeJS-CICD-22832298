@@ -7,7 +7,7 @@ pipeline {
     environment {
         IMAGE_NAME = "nodejs-cicd-app"
         CONTAINER_NAME = "nodejs-test-container"
-        PORT = "8080"
+        PORT = "8081"
         CI_CONTAINER = "nodejs-ci-${BUILD_NUMBER}"
     }
 
