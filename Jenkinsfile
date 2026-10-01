@@ -24,19 +24,33 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh 'npm install'
+                sh '''
+                    docker run --rm \
+                    -v "$PWD:/app" \
+                    -w /app \
+                    node:18 \
+                    npm install
+                '''
             }
         }
 
         stage('Run Tests') {
             steps {
-                sh 'npm test'
+                sh '''
+                    docker run --rm \
+                    -v "$PWD:/app" \
+                    -w /app \
+                    node:18 \
+                    npm test
+                '''
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t ${IMAGE_NAME} .'
+                sh '''
+                    docker build -t ${IMAGE_NAME} .
+                '''
             }
         }
 
