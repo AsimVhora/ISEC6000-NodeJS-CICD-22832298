@@ -8,6 +8,7 @@ pipeline {
         IMAGE_NAME = "nodejs-cicd-app"
         CONTAINER_NAME = "nodejs-test-container"
         PORT = "8080"
+        CI_CONTAINER = "nodejs-ci-${BUILD_NUMBER}"
     }
 
     stages {
@@ -25,11 +26,10 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh '''
-                    docker run --rm \
-                    -v "$PWD:/app" \
-                    -w /app \
-                    node:18 \
-                    npm install
+                    docker create --name ${CI_CONTAINER} node:18
+                    docker cp . ${CI_CONTAINER}:/app
+                    docker start ${CI_CONTAINER}
+                    docker exec ${CI_CONTAINER} sh -c "cd /app && npm install"
                 '''
             }
         }
@@ -37,11 +37,7 @@ pipeline {
         stage('Run Tests') {
             steps {
                 sh '''
-                    docker run --rm \
-                    -v "$PWD:/app" \
-                    -w /app \
-                    node:18 \
-                    npm test
+                    docker exec ${CI_CONTAINER} sh -c "cd /app && npm test"
                 '''
             }
         }
@@ -93,6 +89,7 @@ pipeline {
             sh '''
                 docker stop ${CONTAINER_NAME} || true
                 docker rm ${CONTAINER_NAME} || true
+                docker rm ${CI_CONTAINER} || true
             '''
         }
     }
