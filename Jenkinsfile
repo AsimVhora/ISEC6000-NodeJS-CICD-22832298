@@ -41,6 +41,19 @@ pipeline {
             }
         }
 
+        stage('Security Scan') {
+            steps {
+                sh '''
+                    echo "Running npm security audit..."
+
+                    docker exec ${CI_CONTAINER_NAME} \
+                        sh -c "cd /app && npm audit --audit-level=high"
+
+                    echo "Security scan completed successfully"
+                '''
+            }
+        }
+
         stage('Run Tests') {
             steps {
                 sh '''
