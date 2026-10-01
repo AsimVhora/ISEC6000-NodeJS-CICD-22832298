@@ -7,8 +7,8 @@ pipeline {
     environment {
         IMAGE_NAME = "nodejs-cicd-app"
         CONTAINER_NAME = "nodejs-test-container"
+        CI_CONTAINER_NAME = "nodejs-ci-${BUILD_NUMBER}"
         PORT = "8081"
-        CI_CONTAINER = "nodejs-ci-${BUILD_NUMBER}"
     }
 
     stages {
@@ -26,10 +26,17 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh '''
-                    docker create --name ${CI_CONTAINER} node:18 sh -c "tail -f /dev/null"
-                    docker cp . ${CI_CONTAINER}:/app
-                    docker start ${CI_CONTAINER}
-                    docker exec ${CI_CONTAINER} sh -c "cd /app && npm install"
+                    docker create \
+                        --name ${CI_CONTAINER_NAME} \
+                        node:18 \
+                        sh -c "tail -f /dev/null"
+
+                    docker cp . ${CI_CONTAINER_NAME}:/app
+
+                    docker start ${CI_CONTAINER_NAME}
+
+                    docker exec ${CI_CONTAINER_NAME} \
+                        sh -c "cd /app && npm install"
                 '''
             }
         }
@@ -37,7 +44,8 @@ pipeline {
         stage('Run Tests') {
             steps {
                 sh '''
-                    docker exec ${CI_CONTAINER} sh -c "cd /app && npm test"
+                    docker exec ${CI_CONTAINER_NAME} \
+                        sh -c "cd /app && npm test"
                 '''
             }
         }
@@ -57,9 +65,9 @@ pipeline {
                     docker rm ${CONTAINER_NAME} || true
 
                     docker run -d \
-                    --name ${CONTAINER_NAME} \
-                    -p ${PORT}:8080 \
-                    ${IMAGE_NAME}
+                        --name ${CONTAINER_NAME} \
+                        -p ${PORT}:8080 \
+                        ${IMAGE_NAME}
                 '''
             }
         }
@@ -68,8 +76,37 @@ pipeline {
             steps {
                 sh '''
                     sleep 5
-                    curl http://localhost:${PORT}
-                    echo "Application verification completed"
+
+                    docker exec ${CONTAINER_NAME} \
+                        node -e "
+                        const http = require('http');
+
+                        http.get('http://localhost:8080', (res) => {
+                            let data = '';
+
+                            res.on('data', chunk => {
+                                data += chunk;
+                            });
+
+                            res.on('end', () => {
+                                console.log('HTTP Status:', res.statusCode);
+                                console.log('Response:', data);
+
+                                if (res.statusCode !== 200) {
+                                    process.exit(1);
+                                }
+
+                                if (!data.includes('Hello World')) {
+                                    process.exit(1);
+                                }
+
+                                console.log('Application verification completed successfully');
+                            });
+                        }).on('error', (err) => {
+                            console.error('Application verification failed:', err);
+                            process.exit(1);
+                        });
+                        "
                 '''
             }
         }
@@ -89,7 +126,9 @@ pipeline {
             sh '''
                 docker stop ${CONTAINER_NAME} || true
                 docker rm ${CONTAINER_NAME} || true
-                docker rm ${CI_CONTAINER} || true
+
+                docker stop ${CI_CONTAINER_NAME} || true
+                docker rm ${CI_CONTAINER_NAME} || true
             '''
         }
     }
