@@ -9,7 +9,7 @@ app.get('/', (req, res) => {
 });
 
 if (require.main === module) {
-    app.listen(port, () => {
+    app.listen(port, '0.0.0.0', () => {
         console.log(`App running on http://localhost:${port}`);
     });
 }
